@@ -8,6 +8,17 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8904333919:AAF_BpXXXGCLGH7xwE8f3IfO
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
 
 
+def escape_md(text) -> str:
+    """Escape special Markdown characters to prevent parse errors"""
+    if text is None:
+        return "N/A"
+    text = str(text)
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+
 def is_tiktok_url(text: str) -> bool:
     """Check if text contains a TikTok URL"""
     tiktok_domains = ["tiktok.com", "vm.tiktok.com", "vt.tiktok.com"]
@@ -114,21 +125,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if data.get("success") and data.get("data", {}).get("download_url"):
                 video_data = data["data"]
+                title = escape_md(video_data.get('title', 'N/A'))
+                author = escape_md(video_data.get('author', 'N/A'))
+                duration = escape_md(video_data.get('duration', 0))
+                download_url = video_data['download_url']
                 msg = (
-                    f"✅ *Video siap di-download!*\n\n"
-                    f"📝 *Judul:* {video_data.get('title', 'N/A')}\n"
-                    f"👤 *Author:* @{video_data.get('author', 'N/A')}\n"
-                    f"⏱ *Durasi:* {video_data.get('duration', 0)} detik\n\n"
-                    f"📥 [Download Video (Normal)]({video_data['download_url']})\n"
+                    f"✅ *Video siap di\\-download\\!*\n\n"
+                    f"📝 *Judul:* {title}\n"
+                    f"👤 *Author:* @{author}\n"
+                    f"⏱ *Durasi:* {duration} detik\n\n"
+                    f"📥 [Download Video \\(Normal\\)]({download_url})\n"
                 )
                 if video_data.get("download_url_hd"):
-                    msg += f"📥 [Download Video (HD)]({video_data['download_url_hd']})\n"
+                    msg += f"📥 [Download Video \\(HD\\)]({video_data['download_url_hd']})\n"
 
-                await query.edit_message_text(msg, parse_mode="Markdown", disable_web_page_preview=True)
+                await query.edit_message_text(msg, parse_mode="MarkdownV2", disable_web_page_preview=True)
             else:
                 await query.edit_message_text("❌ Gagal mendapatkan link download. Coba lagi nanti.")
         except Exception as e:
-            await query.edit_message_text(f"❌ Error: {str(e)}")
+            await query.edit_message_text(f"❌ Error: {escape_md(str(e))}", parse_mode=None)
 
     elif action == "download_audio":
         await query.edit_message_text("⏳ Sedang memproses audio...")
@@ -138,18 +153,22 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if data.get("success") and data.get("data", {}).get("download_url"):
                 audio_data = data["data"]
+                music_title = escape_md(audio_data.get('music_title', 'N/A'))
+                music_author = escape_md(audio_data.get('music_author', 'N/A'))
+                duration = escape_md(audio_data.get('duration', 0))
+                download_url = audio_data['download_url']
                 msg = (
-                    f"✅ *Audio siap di-download!*\n\n"
-                    f"🎵 *Musik:* {audio_data.get('music_title', 'N/A')}\n"
-                    f"👤 *Artist:* {audio_data.get('music_author', 'N/A')}\n"
-                    f"⏱ *Durasi:* {audio_data.get('duration', 0)} detik\n\n"
-                    f"🎵 [Download Audio]({audio_data['download_url']})"
+                    f"✅ *Audio siap di\\-download\\!*\n\n"
+                    f"🎵 *Musik:* {music_title}\n"
+                    f"👤 *Artist:* {music_author}\n"
+                    f"⏱ *Durasi:* {duration} detik\n\n"
+                    f"🎵 [Download Audio]({download_url})"
                 )
-                await query.edit_message_text(msg, parse_mode="Markdown", disable_web_page_preview=True)
+                await query.edit_message_text(msg, parse_mode="MarkdownV2", disable_web_page_preview=True)
             else:
                 await query.edit_message_text("❌ Gagal mendapatkan link audio. Coba lagi nanti.")
         except Exception as e:
-            await query.edit_message_text(f"❌ Error: {str(e)}")
+            await query.edit_message_text(f"❌ Error: {escape_md(str(e))}", parse_mode=None)
 
     elif action == "video_info":
         await query.edit_message_text("⏳ Mengambil info video...")
@@ -161,22 +180,30 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 info = data["data"]
                 stats = info.get("stats", {})
                 author = info.get("author", {})
+                title = escape_md(info.get('title', 'N/A'))
+                username = escape_md(author.get('username', 'N/A'))
+                nickname = escape_md(author.get('nickname', ''))
+                duration = escape_md(info.get('duration', 0))
+                plays = escape_md(f"{stats.get('plays', 0):,}")
+                likes = escape_md(f"{stats.get('likes', 0):,}")
+                comments = escape_md(f"{stats.get('comments', 0):,}")
+                shares = escape_md(f"{stats.get('shares', 0):,}")
                 msg = (
                     f"📊 *Info Video TikTok*\n\n"
-                    f"📝 *Judul:* {info.get('title', 'N/A')}\n"
-                    f"👤 *Author:* @{author.get('username', 'N/A')} ({author.get('nickname', '')})\n"
-                    f"⏱ *Durasi:* {info.get('duration', 0)} detik\n\n"
+                    f"📝 *Judul:* {title}\n"
+                    f"👤 *Author:* @{username} \\({nickname}\\)\n"
+                    f"⏱ *Durasi:* {duration} detik\n\n"
                     f"📈 *Statistik:*\n"
-                    f"   ▶️ Views: {stats.get('plays', 0):,}\n"
-                    f"   ❤️ Likes: {stats.get('likes', 0):,}\n"
-                    f"   💬 Comments: {stats.get('comments', 0):,}\n"
-                    f"   🔄 Shares: {stats.get('shares', 0):,}"
+                    f"   ▶️ Views: {plays}\n"
+                    f"   ❤️ Likes: {likes}\n"
+                    f"   💬 Comments: {comments}\n"
+                    f"   🔄 Shares: {shares}"
                 )
-                await query.edit_message_text(msg, parse_mode="Markdown")
+                await query.edit_message_text(msg, parse_mode="MarkdownV2")
             else:
                 await query.edit_message_text("❌ Gagal mendapatkan info video. Coba lagi nanti.")
         except Exception as e:
-            await query.edit_message_text(f"❌ Error: {str(e)}")
+            await query.edit_message_text(f"❌ Error: {escape_md(str(e))}", parse_mode=None)
 
 
 async def main():
