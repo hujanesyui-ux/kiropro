@@ -125,25 +125,36 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if data.get("success") and data.get("data", {}).get("download_url"):
                 video_data = data["data"]
-                title = escape_md(video_data.get('title', 'N/A'))
-                author = escape_md(video_data.get('author', 'N/A'))
-                duration = escape_md(video_data.get('duration', 0))
-                download_url = video_data['download_url']
-                msg = (
-                    f"✅ *Video siap di\\-download\\!*\n\n"
-                    f"📝 *Judul:* {title}\n"
-                    f"👤 *Author:* @{author}\n"
-                    f"⏱ *Durasi:* {duration} detik\n\n"
-                    f"📥 [Download Video \\(Normal\\)]({download_url})\n"
-                )
-                if video_data.get("download_url_hd"):
-                    msg += f"📥 [Download Video \\(HD\\)]({video_data['download_url_hd']})\n"
+                download_url = video_data.get("download_url_hd") or video_data["download_url"]
+                title = video_data.get('title', 'TikTok Video')
+                author = video_data.get('author', 'unknown')
 
-                await query.edit_message_text(msg, parse_mode="MarkdownV2", disable_web_page_preview=True)
+                # Send video directly to user
+                await query.edit_message_text("📥 Mengirim video...")
+                try:
+                    await query.message.reply_video(
+                        video=download_url,
+                        caption=f"📝 {title}\n👤 @{author}",
+                        supports_streaming=True
+                    )
+                    await query.delete_message()
+                except Exception:
+                    # Fallback: send as link if video send fails
+                    title_escaped = escape_md(title)
+                    author_escaped = escape_md(author)
+                    duration = escape_md(video_data.get('duration', 0))
+                    msg = (
+                        f"✅ *Video siap di\\-download\\!*\n\n"
+                        f"📝 *Judul:* {title_escaped}\n"
+                        f"👤 *Author:* @{author_escaped}\n"
+                        f"⏱ *Durasi:* {duration} detik\n\n"
+                        f"📥 [Download Video]({download_url})"
+                    )
+                    await query.edit_message_text(msg, parse_mode="MarkdownV2", disable_web_page_preview=True)
             else:
                 await query.edit_message_text("❌ Gagal mendapatkan link download. Coba lagi nanti.")
         except Exception as e:
-            await query.edit_message_text(f"❌ Error: {escape_md(str(e))}", parse_mode=None)
+            await query.edit_message_text(f"❌ Error: {str(e)}")
 
     elif action == "download_audio":
         await query.edit_message_text("⏳ Sedang memproses audio...")
@@ -153,22 +164,36 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if data.get("success") and data.get("data", {}).get("download_url"):
                 audio_data = data["data"]
-                music_title = escape_md(audio_data.get('music_title', 'N/A'))
-                music_author = escape_md(audio_data.get('music_author', 'N/A'))
-                duration = escape_md(audio_data.get('duration', 0))
                 download_url = audio_data['download_url']
-                msg = (
-                    f"✅ *Audio siap di\\-download\\!*\n\n"
-                    f"🎵 *Musik:* {music_title}\n"
-                    f"👤 *Artist:* {music_author}\n"
-                    f"⏱ *Durasi:* {duration} detik\n\n"
-                    f"🎵 [Download Audio]({download_url})"
-                )
-                await query.edit_message_text(msg, parse_mode="MarkdownV2", disable_web_page_preview=True)
+                music_title = audio_data.get('music_title', 'TikTok Audio')
+                music_author = audio_data.get('music_author', 'unknown')
+
+                # Send audio directly to user
+                await query.edit_message_text("🎵 Mengirim audio...")
+                try:
+                    await query.message.reply_audio(
+                        audio=download_url,
+                        title=music_title,
+                        performer=music_author
+                    )
+                    await query.delete_message()
+                except Exception:
+                    # Fallback: send as link
+                    music_title_escaped = escape_md(music_title)
+                    music_author_escaped = escape_md(music_author)
+                    duration = escape_md(audio_data.get('duration', 0))
+                    msg = (
+                        f"✅ *Audio siap di\\-download\\!*\n\n"
+                        f"🎵 *Musik:* {music_title_escaped}\n"
+                        f"👤 *Artist:* {music_author_escaped}\n"
+                        f"⏱ *Durasi:* {duration} detik\n\n"
+                        f"🎵 [Download Audio]({download_url})"
+                    )
+                    await query.edit_message_text(msg, parse_mode="MarkdownV2", disable_web_page_preview=True)
             else:
                 await query.edit_message_text("❌ Gagal mendapatkan link audio. Coba lagi nanti.")
         except Exception as e:
-            await query.edit_message_text(f"❌ Error: {escape_md(str(e))}", parse_mode=None)
+            await query.edit_message_text(f"❌ Error: {str(e)}")
 
     elif action == "video_info":
         await query.edit_message_text("⏳ Mengambil info video...")

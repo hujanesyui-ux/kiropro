@@ -134,8 +134,8 @@ app.get('/api/video/download', async (req, res) => {
         id: videoData.videoId,
         title: data.title || '',
         author: data.author?.unique_id || '',
-        download_url: data.play ? `https://www.tikwm.com${data.play}` : null,
-        download_url_hd: data.hdplay ? `https://www.tikwm.com${data.hdplay}` : null,
+        download_url: data.play ? (data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`) : null,
+        download_url_hd: data.hdplay ? (data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`) : null,
         duration: data.duration || 0
       }
     });
@@ -163,7 +163,7 @@ app.get('/api/audio/download', async (req, res) => {
         author: data.author?.unique_id || '',
         music_title: data.music_info?.title || data.music || '',
         music_author: data.music_info?.author || '',
-        download_url: data.music ? `https://www.tikwm.com${data.music}` : null,
+        download_url: data.music ? (data.music.startsWith('http') ? data.music : `https://www.tikwm.com${data.music}`) : null,
         duration: data.duration || 0
       }
     });
