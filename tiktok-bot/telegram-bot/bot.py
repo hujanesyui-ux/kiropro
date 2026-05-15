@@ -179,7 +179,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(f"❌ Error: {str(e)}")
 
 
-def main():
+async def main():
     """Start the bot"""
     print("🤖 Starting TikTok Downloader Bot...")
 
@@ -192,8 +192,25 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_tiktok_link))
 
     print("✅ Bot is running!")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+    async with app:
+        await app.start()
+        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        # Keep running until interrupted
+        import asyncio
+        stop_event = asyncio.Event()
+        try:
+            await stop_event.wait()
+        except (KeyboardInterrupt, SystemExit):
+            pass
+        finally:
+            await app.updater.stop()
+            await app.stop()
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        print("\n👋 Bot stopped.")
