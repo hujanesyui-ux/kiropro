@@ -75,7 +75,8 @@ app.get('/', (req, res) => {
     endpoints: {
       '/api/video/info': 'GET - Get video info (query: url)',
       '/api/video/download': 'GET - Download video no watermark (query: url)',
-      '/api/audio/download': 'GET - Download audio (query: url)'
+      '/api/audio/download': 'GET - Download audio (query: url)',
+      '/api/user/videos': 'GET - Get user videos (query: username, cursor)'
     }
   });
 });
@@ -167,6 +168,67 @@ app.get('/api/audio/download', async (req, res) => {
         duration: data.duration || 0
       }
     });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/user/videos - Get user's videos list with download links
+app.get('/api/user/videos', async (req, res) => {
+  try {
+    const { username, cursor } = req.query;
+    if (!username) {
+      return res.status(400).json({ success: false, error: 'Username parameter is required' });
+    }
+
+    // Clean username (remove @ if present)
+    const cleanUsername = username.replace('@', '').trim();
+
+    // Use tikwm.com user videos API
+    const params = {
+      unique_id: cleanUsername,
+      count: 30,
+      cursor: cursor || 0
+    };
+
+    const tikwmRes = await axios.get('https://www.tikwm.com/api/user/posts', {
+      params,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+
+    if (tikwmRes.data && tikwmRes.data.data) {
+      const responseData = tikwmRes.data.data;
+      const videos = (responseData.videos || []).map(video => ({
+        id: video.video_id || video.id,
+        title: video.title || '',
+        duration: video.duration || 0,
+        cover: video.cover || video.origin_cover || '',
+        stats: {
+          plays: video.play_count || 0,
+          likes: video.digg_count || 0,
+          comments: video.comment_count || 0,
+          shares: video.share_count || 0
+        },
+        download_url: video.play ? (video.play.startsWith('http') ? video.play : `https://www.tikwm.com${video.play}`) : null,
+        download_url_hd: video.hdplay ? (video.hdplay.startsWith('http') ? video.hdplay : `https://www.tikwm.com${video.hdplay}`) : null,
+        music_url: video.music ? (video.music.startsWith('http') ? video.music : `https://www.tikwm.com${video.music}`) : null
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          username: cleanUsername,
+          video_count: videos.length,
+          has_more: responseData.hasMore || false,
+          cursor: responseData.cursor || 0,
+          videos
+        }
+      });
+    } else {
+      throw new Error('Failed to fetch user videos');
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
